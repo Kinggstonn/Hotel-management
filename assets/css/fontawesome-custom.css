@@ -1,0 +1,246 @@
+/* Font Awesome Custom Styles */
+/* Enhanced styling for Font Awesome icons */
+
+/* Icon sizing utilities */
+.icon-xs { font-size: 0.75rem; }
+.icon-sm { font-size: 0.875rem; }
+.icon-lg { font-size: 1.25rem; }
+.icon-xl { font-size: 1.5rem; }
+.icon-2x { font-size: 2rem; }
+.icon-3x { font-size: 3rem; }
+
+/* Icon colors with semantic meaning */
+.icon-primary { color: #0d6efd; }
+.icon-secondary { color: #6c757d; }
+.icon-success { color: #198754; }
+.icon-danger { color: #dc3545; }
+.icon-warning { color: #ffc107; }
+.icon-info { color: #0dcaf0; }
+.icon-light { color: #f8f9fa; }
+.icon-dark { color: #212529; }
+
+/* Hover effects */
+.icon-hover:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.icon-pulse {
+    animation: icon-pulse 2s infinite;
+}
+
+@keyframes icon-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.icon-spin {
+    animation: icon-spin 2s linear infinite;
+}
+
+@keyframes icon-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.icon-bounce {
+    animation: icon-bounce 1s infinite;
+}
+
+@keyframes icon-bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+/* Navigation icons */
+.navbar .nav-link i {
+    transition: all 0.3s ease;
+}
+
+.navbar .nav-link:hover i {
+    transform: translateY(-2px);
+    color: #fff !important;
+}
+
+/* Button icons */
+.btn i {
+    margin-right: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn:hover i {
+    transform: scale(1.1);
+}
+
+/* Card icons */
+.card-header i {
+    margin-right: 0.5rem;
+    color: #0d6efd;
+}
+
+/* Status icons - Based on the image icons */
+.status-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.status-success { color: #198754; }
+.status-warning { color: #ffc107; }
+.status-danger { color: #dc3545; }
+.status-info { color: #0dcaf0; }
+
+/* Dashboard stats icons - Matching the image style */
+.stats-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+}
+
+.stats-card:hover .stats-icon {
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+/* Specific icons from the image */
+.fa-home, .fa-hotel {
+    color: #0d6efd; /* Blue for total rooms */
+}
+
+.fa-check-circle {
+    color: #198754; /* Green for available rooms */
+}
+
+.fa-calendar-check {
+    color: #ffc107; /* Yellow/Orange for booked rooms */
+}
+
+/* Form icons */
+.form-control-icon {
+    position: relative;
+}
+
+.form-control-icon i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    z-index: 10;
+}
+
+.form-control-icon .form-control {
+    padding-left: 40px;
+}
+
+/* Table icons */
+.table-icon {
+    margin-right: 0.5rem;
+    width: 16px;
+    text-align: center;
+}
+
+/* Dropdown icons */
+.dropdown-item i {
+    width: 20px;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+
+/* Alert icons */
+.alert i {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    animation: icon-spin 1s linear infinite;
+}
+
+/* Icon with badge */
+.icon-badge {
+    position: relative;
+}
+
+.icon-badge .badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Responsive icon sizing */
+@media (max-width: 768px) {
+    .icon-2x { font-size: 1.5rem; }
+    .icon-3x { font-size: 2rem; }
+    .stats-icon { font-size: 2rem; }
+}
+
+/* Print styles */
+@media print {
+    .icon-hover:hover,
+    .icon-pulse,
+    .icon-spin,
+    .icon-bounce {
+        animation: none;
+        transform: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .icon-light { color: #212529; }
+    .icon-dark { color: #f8f9fa; }
+}
+
+/* Accessibility */
+.icon-accessible {
+    position: relative;
+}
+
+.icon-accessible::after {
+    content: attr(aria-label);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.icon-accessible:hover::after {
+    opacity: 1;
+}
+
+/* Enhanced styling for the specific icons from the image */
+.fa-home, .fa-hotel {
+    background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.fa-check-circle {
+    background: linear-gradient(45deg, #198754, #146c43);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.fa-calendar-check {
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
