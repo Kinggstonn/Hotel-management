@@ -98,14 +98,14 @@ CREATE TABLE room_services (
     quantity INT DEFAULT 1,
     price DECIMAL(10,2) DEFAULT 0,
     status ENUM('requested', 'in_progress', 'completed', 'cancelled') DEFAULT 'requested',
-    requested_by INT NOT NULL,
-    assigned_to INT NULL,
+    requested_by INT,
+    assigned_to INT,
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
     notes TEXT,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
-    FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
 );
 
