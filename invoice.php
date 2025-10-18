@@ -46,18 +46,24 @@ include "includes/header.php";
 
 <div class="container-fluid">
     <!-- Breadcrumb Navigation -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="dashboard.php" class="text-decoration-none">
-                    <i class="fas fa-home"></i> Trang chủ
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-                <i class="fas fa-file-invoice"></i> Hóa đơn
-            </li>
-        </ol>
-    </nav>
+    <div class="row justify-content-center mb-3">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb justify-content-center">
+                    <li class="breadcrumb-item">
+                        <a href="dashboard.php" class="text-decoration-none d-flex align-items-center">
+                            <i class="fas fa-home me-1"></i> 
+                            <span>Trang chủ</span>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active d-flex align-items-center" aria-current="page">
+                        <i class="fas fa-file-invoice me-1"></i> 
+                        <span>Hóa đơn</span>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
     
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -273,6 +279,50 @@ $(document).ready(function() {
             }
             .fs-5 {
                 font-size: 12pt !important;
+            }
+        </style>
+        
+        <style>
+            /* Breadcrumb Styling */
+            .breadcrumb {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 25px;
+                padding: 0.75rem 1.5rem;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                border: 1px solid #dee2e6;
+                margin: 0;
+            }
+            
+            .breadcrumb-item {
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+            
+            .breadcrumb-item a {
+                color: #007bff;
+                transition: all 0.3s ease;
+            }
+            
+            .breadcrumb-item a:hover {
+                color: #0056b3;
+                transform: translateY(-1px);
+            }
+            
+            .breadcrumb-item.active {
+                color: #6c757d;
+                font-weight: 600;
+            }
+            
+            .breadcrumb-item + .breadcrumb-item::before {
+                content: "›";
+                color: #6c757d;
+                font-weight: bold;
+                font-size: 1.1rem;
+                margin: 0 0.5rem;
+            }
+            
+            .breadcrumb i {
+                font-size: 0.9rem;
             }
         </style>
     `;
