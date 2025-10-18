@@ -9,32 +9,39 @@ requirePermission('view_reports');
 $page_title = "Dashboard - Hotel Management";
 include "includes/header.php"; 
 
-// Lấy thống kê tổng quan (sửa lỗi created_at)
 $today = date('Y-m-d');
-$stats_query = "
+
+$room_stats_query = "
     SELECT 
-        -- Thống kê phòng
-        COUNT(r.id) as total_rooms,
-        SUM(CASE WHEN r.status = 'available' THEN 1 ELSE 0 END) as available_rooms,
-        SUM(CASE WHEN r.status = 'booked' THEN 1 ELSE 0 END) as booked_rooms,
-        SUM(CASE WHEN r.type = 'VIP' THEN 1 ELSE 0 END) as vip_rooms,
-        SUM(CASE WHEN r.type = 'Thường' THEN 1 ELSE 0 END) as regular_rooms,
-        
-        -- Doanh thu hôm nay (chỉ tính booking đã thực hiện, không tính cancelled)
-        COALESCE(SUM(CASE WHEN b.checkin = '$today' AND b.status != 'cancelled' THEN b.total_price ELSE 0 END), 0) as today_revenue,
-        
-        -- Booking hôm nay (chỉ tính booking thực hiện, không tính cancelled)
-        COUNT(CASE WHEN b.checkin = '$today' AND b.status != 'cancelled' THEN 1 END) as today_bookings
-        
-    FROM rooms r 
-    LEFT JOIN bookings b ON r.id = b.room_id
+        COUNT(*) as total_rooms,
+        SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available_rooms,
+        SUM(CASE WHEN status = 'booked' THEN 1 ELSE 0 END) as booked_rooms,
+        SUM(CASE WHEN type = 'VIP' THEN 1 ELSE 0 END) as vip_rooms,
+        SUM(CASE WHEN type = 'Thường' THEN 1 ELSE 0 END) as regular_rooms
+    FROM rooms
 ";
 
-$stats = $conn->query($stats_query)->fetch_assoc();
+// Thống kê booking và doanh thu hôm nay
+$booking_stats_query = "
+    SELECT 
+        COALESCE(SUM(CASE WHEN checkin = '$today' AND status != 'cancelled' THEN total_price ELSE 0 END), 0) as today_revenue,
+        COUNT(CASE WHEN checkin = '$today' AND status != 'cancelled' THEN 1 END) as today_bookings
+    FROM bookings
+";
 
-// Removed occupancy rate calculation
+$room_stats = $conn->query($room_stats_query)->fetch_assoc();
+$booking_stats = $conn->query($booking_stats_query)->fetch_assoc();
 
-// Booking gần đây (safe query không dùng created_at)
+// Kết hợp thống kê
+$stats = array_merge($room_stats, $booking_stats);
+
+$room_stats = $conn->query($room_stats_query)->fetch_assoc();
+$booking_stats = $conn->query($booking_stats_query)->fetch_assoc();
+
+// Kết hợp thống kê
+$stats = array_merge($room_stats, $booking_stats);
+
+
 $recent_bookings = $conn->query("
     SELECT b.*, g.name as guest_name, r.room_number, r.type as room_type 
     FROM bookings b 
@@ -139,11 +146,17 @@ $today_checkouts = $conn->query("
             <a href="book.php" class="btn btn-success rounded-pill">
                 <i class="fas fa-calendar-plus"></i> Đặt phòng mới
             </a>
+            <a href="payment_billing.php" class="btn btn-info rounded-pill">
+                <i class="fas fa-credit-card"></i> Thanh toán
+            </a>
+            <a href="demo_booking_flow.php" class="btn btn-outline-primary rounded-pill">
+                <i class="fas fa-route"></i> Demo luồng đặt phòng
+            </a>
             <a href="reports.php" class="btn btn-warning rounded-pill">
                 <i class="fas fa-chart-line"></i> Báo cáo chi tiết
             </a>
-            <a href="setup_database.php" class="btn btn-secondary rounded-pill">
-                🔧 Quản lý Database
+            <a href="install_database.php" class="btn btn-secondary rounded-pill">
+                🔧 Cài đặt Database
             </a>
         </div>
     </div>

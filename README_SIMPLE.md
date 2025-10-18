@@ -69,9 +69,4 @@ hotel/
 - **PHP:** 7.4+
 - **MySQL:** 5.7+
 
-## 📞 Hỗ trợ
 
-Nếu có vấn đề, hãy chạy lại:
-```
-http://localhost/hotel/install_database.php
-```

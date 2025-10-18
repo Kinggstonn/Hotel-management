@@ -1,9 +1,23 @@
+-- ================================================
+-- HOTEL MANAGEMENT SYSTEM - COMPLETE DATABASE SCHEMA
+-- ================================================
+-- Tác giả: Hotel Management System
+-- Phiên bản: 2.0 (Updated with Payment System)
+-- Ngày tạo: 2025
+-- Mô tả: Schema hoàn chỉnh cho hệ thống quản lý khách sạn với thanh toán
+
+-- ================================================
+-- 1. TẠO DATABASE VÀ CẤU HÌNH
+-- ================================================
 
 DROP DATABASE IF EXISTS hotel_management;
 CREATE DATABASE hotel_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE hotel_management;
 
--- Users table (Authentication & Authorization)
+-- ================================================
+-- 2. BẢNG NGƯỜI DÙNG (USERS)
+-- ================================================
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -17,19 +31,26 @@ CREATE TABLE users (
     last_login TIMESTAMP NULL
 );
 
--- Rooms table (Enhanced with floor, price)
+-- ================================================
+-- 3. BẢNG PHÒNG (ROOMS) - CẬP NHẬT VỚI PRICE_PER_NIGHT
+-- ================================================
+
 CREATE TABLE rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     room_number VARCHAR(10) UNIQUE NOT NULL,
     type ENUM('VIP', 'Thường') DEFAULT 'Thường',
     floor INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+    price_per_night DECIMAL(10,2) NOT NULL,  -- Cột mới cho hệ thống thanh toán
     status ENUM('available', 'booked', 'occupied', 'cleaning', 'maintenance') DEFAULT 'available',
     amenities TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Guests table (Linked to users)
+-- ================================================
+-- 4. BẢNG KHÁCH HÀNG (GUESTS)
+-- ================================================
+
 CREATE TABLE guests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
@@ -42,7 +63,10 @@ CREATE TABLE guests (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Bookings table (Enhanced with payment status, created_at)
+-- ================================================
+-- 5. BẢNG ĐẶT PHÒNG (BOOKINGS) - CẬP NHẬT VỚI PENDING_PAYMENT
+-- ================================================
+
 CREATE TABLE bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     guest_id INT NOT NULL,
@@ -50,7 +74,7 @@ CREATE TABLE bookings (
     checkin DATE NOT NULL,
     checkout DATE NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
-    status ENUM('booked', 'checked_in', 'checked_out', 'completed', 'cancelled', 'early_checkout') DEFAULT 'booked',
+    status ENUM('pending_payment', 'booked', 'checked_in', 'checked_out', 'completed', 'cancelled', 'early_checkout') DEFAULT 'pending_payment',
     payment_status ENUM('unpaid', 'paid', 'partial', 'refunded') DEFAULT 'unpaid',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -58,14 +82,20 @@ CREATE TABLE bookings (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
--- Payments table (Payment & Billing Management)
+-- ================================================
+-- 6. BẢNG THANH TOÁN (PAYMENTS) - CẬP NHẬT VỚI THÔNG TIN THẺ
+-- ================================================
+
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
-    payment_method ENUM('cash', 'card', 'bank_transfer', 'momo', 'zalopay') DEFAULT 'cash',
+    payment_method ENUM('cash', 'card', 'bank_transfer', 'momo', 'zalopay') DEFAULT 'card',
     payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
     transaction_id VARCHAR(100) UNIQUE,
+    card_number VARCHAR(20),        -- Thông tin thẻ (đã mask)
+    card_name VARCHAR(100),         -- Tên chủ thẻ
+    card_expiry VARCHAR(10),        -- Ngày hết hạn thẻ
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_by INT,
@@ -73,7 +103,10 @@ CREATE TABLE payments (
     FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Refunds table (Refund Management)
+-- ================================================
+-- 7. BẢNG HOÀN TIỀN (REFUNDS)
+-- ================================================
+
 CREATE TABLE refunds (
     id INT AUTO_INCREMENT PRIMARY KEY,
     payment_id INT NOT NULL,
@@ -88,7 +121,10 @@ CREATE TABLE refunds (
     FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Room Services table (Room Service Management)
+-- ================================================
+-- 8. BẢNG DỊCH VỤ PHÒNG (ROOM SERVICES)
+-- ================================================
+
 CREATE TABLE room_services (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
@@ -109,7 +145,10 @@ CREATE TABLE room_services (
     FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Hotel Settings table (Settings Management)
+-- ================================================
+-- 9. BẢNG CÀI ĐẶT KHÁCH SẠN (HOTEL SETTINGS)
+-- ================================================
+
 CREATE TABLE hotel_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(100) UNIQUE NOT NULL,
@@ -121,7 +160,10 @@ CREATE TABLE hotel_settings (
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Activity Logs table (Audit Trail)
+-- ================================================
+-- 10. BẢNG LOG HOẠT ĐỘNG (ACTIVITY LOGS)
+-- ================================================
+
 CREATE TABLE activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -136,15 +178,23 @@ CREATE TABLE activity_logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Indexes for better performance
+-- ================================================
+-- 11. INDEXES CHO HIỆU SUẤT
+-- ================================================
+
 CREATE INDEX idx_bookings_dates ON bookings(checkin, checkout);
 CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_payments_date ON payments(created_at);
+CREATE INDEX idx_payments_transaction ON payments(transaction_id);
+CREATE INDEX idx_payments_card ON payments(card_number);
 CREATE INDEX idx_room_services_status ON room_services(status);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_rooms_status ON rooms(status);
 
--- Sample Data
+-- ================================================
+-- 12. DỮ LIỆU MẪU
+-- ================================================
+
 -- Demo users
 INSERT INTO users (username, password, full_name, email, phone, role, status) VALUES
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin@hotel.com', '0123456789', 'admin', 'active'),
@@ -152,30 +202,30 @@ INSERT INTO users (username, password, full_name, email, phone, role, status) VA
 ('customer', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Customer Demo', 'customer@hotel.com', '0123456791', 'customer', 'active');
 
 -- Hotel rooms (3 floors, 6 rooms per floor: 4 regular + 2 VIP)
-INSERT INTO rooms (room_number, type, floor, price, status) VALUES
+INSERT INTO rooms (room_number, type, floor, price, price_per_night, status) VALUES
 -- Floor 1
-('101', 'Thường', 1, 500000, 'available'),
-('102', 'Thường', 1, 500000, 'available'),
-('103', 'Thường', 1, 500000, 'available'),
-('104', 'Thường', 1, 500000, 'available'),
-('105', 'VIP', 1, 1000000, 'available'),
-('106', 'VIP', 1, 1000000, 'available'),
+('101', 'Thường', 1, 500000, 500000, 'available'),
+('102', 'Thường', 1, 500000, 500000, 'available'),
+('103', 'Thường', 1, 500000, 500000, 'available'),
+('104', 'Thường', 1, 500000, 500000, 'available'),
+('105', 'VIP', 1, 1000000, 1000000, 'available'),
+('106', 'VIP', 1, 1000000, 1000000, 'available'),
 
 -- Floor 2
-('201', 'Thường', 2, 500000, 'available'),
-('202', 'Thường', 2, 500000, 'available'),
-('203', 'Thường', 2, 500000, 'available'),
-('204', 'Thường', 2, 500000, 'available'),
-('205', 'VIP', 2, 1000000, 'available'),
-('206', 'VIP', 2, 1000000, 'available'),
+('201', 'Thường', 2, 500000, 500000, 'available'),
+('202', 'Thường', 2, 500000, 500000, 'available'),
+('203', 'Thường', 2, 500000, 500000, 'available'),
+('204', 'Thường', 2, 500000, 500000, 'available'),
+('205', 'VIP', 2, 1000000, 1000000, 'available'),
+('206', 'VIP', 2, 1000000, 1000000, 'available'),
 
 -- Floor 3
-('301', 'Thường', 3, 500000, 'available'),
-('302', 'Thường', 3, 500000, 'available'),
-('303', 'Thường', 3, 500000, 'available'),
-('304', 'Thường', 3, 500000, 'available'),
-('305', 'VIP', 3, 1000000, 'available'),
-('306', 'VIP', 3, 1000000, 'available');
+('301', 'Thường', 3, 500000, 500000, 'available'),
+('302', 'Thường', 3, 500000, 500000, 'available'),
+('303', 'Thường', 3, 500000, 500000, 'available'),
+('304', 'Thường', 3, 500000, 500000, 'available'),
+('305', 'VIP', 3, 1000000, 1000000, 'available'),
+('306', 'VIP', 3, 1000000, 1000000, 'available');
 
 -- Sample guests
 INSERT INTO guests (user_id, name, phone, email, id_card) VALUES
@@ -183,15 +233,17 @@ INSERT INTO guests (user_id, name, phone, email, id_card) VALUES
 (NULL, 'Trần Thị B', '0987654322', 'tran.b@email.com', '123456790'),
 (NULL, 'Lê Văn C', '0987654323', 'le.c@email.com', '123456791');
 
--- Sample bookings
+-- Sample bookings (với trạng thái pending_payment)
 INSERT INTO bookings (guest_id, room_id, checkin, checkout, total_price, status, payment_status) VALUES
-(1, 1, '2025-01-15', '2025-01-17', 1000000, 'checked_in', 'paid'),
-(2, 5, '2025-01-16', '2025-01-19', 3000000, 'booked', 'unpaid'),
-(3, 3, '2025-01-18', '2025-01-20', 1000000, 'booked', 'unpaid');
+(1, 1, '2025-01-15', '2025-01-17', 1000000, 'booked', 'paid'),
+(2, 5, '2025-01-16', '2025-01-19', 3000000, 'pending_payment', 'unpaid'),
+(3, 3, '2025-01-18', '2025-01-20', 1000000, 'pending_payment', 'unpaid');
 
--- Sample payments
-INSERT INTO payments (booking_id, amount, payment_method, payment_status, transaction_id, processed_by) VALUES
-(1, 1000000, 'cash', 'completed', 'TXN_20250115_1_001', 1);
+-- Sample payments (với thông tin thẻ)
+INSERT INTO payments (booking_id, amount, payment_method, payment_status, transaction_id, card_number, card_name, card_expiry, processed_by) VALUES
+(1, 1000000, 'cash', 'completed', 'TXN_20250115_1_001', NULL, NULL, NULL, 1),
+(2, 3000000, 'card', 'completed', 'TXN_20250116_2_002', '4111****1111', 'Trần Thị B', '12/25', 1),
+(3, 1000000, 'card', 'completed', 'TXN_20250118_3_003', '4111****1111', 'Lê Văn C', '12/25', 1);
 
 -- Hotel settings
 INSERT INTO hotel_settings (setting_key, setting_value, setting_type, description) VALUES
@@ -207,11 +259,14 @@ INSERT INTO hotel_settings (setting_key, setting_value, setting_type, descriptio
 ('max_occupancy_regular', '2', 'number', 'Số người tối đa - phòng thường'),
 ('max_occupancy_vip', '4', 'number', 'Số người tối đa - phòng VIP');
 
--- Views for common queries
+-- ================================================
+-- 13. VIEWS CHO CÁC TRUY VẤN THƯỜNG DÙNG
+-- ================================================
+
 CREATE VIEW active_bookings AS
 SELECT 
     b.id, b.checkin, b.checkout, b.total_price, b.status, b.payment_status,
-    r.room_number, r.type, r.floor, r.price,
+    r.room_number, r.type, r.floor, r.price, r.price_per_night,
     g.name as guest_name, g.phone, g.email,
     u.username, u.role
 FROM bookings b
@@ -241,7 +296,10 @@ SELECT
 FROM rooms r
 GROUP BY r.floor, r.type;
 
--- Stored procedures
+-- ================================================
+-- 14. STORED PROCEDURES
+-- ================================================
+
 DELIMITER //
 
 -- Procedure to automatically complete expired bookings
@@ -273,7 +331,10 @@ END //
 
 DELIMITER ;
 
--- Triggers for activity logging
+-- ================================================
+-- 15. TRIGGERS CHO AUDIT TRAIL
+-- ================================================
+
 DELIMITER //
 
 CREATE TRIGGER booking_insert_log AFTER INSERT ON bookings
@@ -304,4 +365,41 @@ END //
 
 DELIMITER ;
 
+-- ================================================
+-- 16. HOÀN TẤT
+-- ================================================
+
 COMMIT;
+
+-- ================================================
+-- THÔNG TIN VỀ SCHEMA
+-- ================================================
+-- 
+-- Các tính năng chính:
+-- ✅ Hệ thống đăng nhập và phân quyền
+-- ✅ Quản lý phòng với giá theo đêm
+-- ✅ Đặt phòng với trạng thái pending_payment
+-- ✅ Hệ thống thanh toán với thông tin thẻ
+-- ✅ Quản lý hoàn tiền
+-- ✅ Dịch vụ phòng
+-- ✅ Cài đặt khách sạn
+-- ✅ Audit trail (log hoạt động)
+-- ✅ Views và Stored Procedures
+-- ✅ Triggers tự động
+-- 
+-- Trạng thái booking:
+-- - pending_payment: Chờ thanh toán
+-- - booked: Đã thanh toán và xác nhận
+-- - checked_in: Đã check-in
+-- - checked_out: Đã check-out
+-- - completed: Hoàn thành
+-- - cancelled: Đã hủy
+-- - early_checkout: Check-out sớm
+-- 
+-- Trạng thái thanh toán:
+-- - unpaid: Chưa thanh toán
+-- - paid: Đã thanh toán
+-- - partial: Thanh toán một phần
+-- - refunded: Đã hoàn tiền
+-- 
+-- ================================================

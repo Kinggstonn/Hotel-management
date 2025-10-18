@@ -46,16 +46,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $conn->query("INSERT INTO guests (name, phone, id_card, user_id) VALUES ('$name','$phone','$id_card', $current_user_id)");
     $guest_id = $conn->insert_id;
 
-    // thêm booking với tổng giá
-    $conn->query("INSERT INTO bookings (guest_id, room_id, checkin, checkout, total_price) 
-                  VALUES ($guest_id, $room_id, '$checkin', '$checkout', $total_price)");
+    // thêm booking với tổng giá (trạng thái pending - chờ thanh toán)
+    $conn->query("INSERT INTO bookings (guest_id, room_id, checkin, checkout, total_price, status) 
+                  VALUES ($guest_id, $room_id, '$checkin', '$checkout', $total_price, 'pending_payment')");
+    $booking_id = $conn->insert_id;
 
-    // cập nhật trạng thái phòng
-    $conn->query("UPDATE rooms SET status='booked' WHERE id=$room_id");
+    // KHÔNG cập nhật trạng thái phòng - phòng vẫn available cho đến khi thanh toán thành công
     
-    // Redirect sau khi xử lý thành công
-    $_SESSION['success'] = 'Đặt phòng thành công!';
-    header('Location: book.php?success=1&room_id=' . $room_id);
+    // Redirect đến trang thanh toán sau khi đặt phòng thành công
+    $_SESSION['success'] = 'Đặt phòng thành công! Vui lòng thanh toán để xác nhận đặt phòng.';
+    header('Location: payment_form.php?booking_id=' . $booking_id);
     exit();
 }
 
@@ -92,97 +92,14 @@ include "includes/header.php";
 ?>
 
 <?php
-// Hiển thị thông báo thành công nếu có
-if (isset($_GET['success']) && $_GET['success'] == '1') {
-    // Lấy thông tin booking từ session
-    $success_message = $_SESSION['success'] ?? 'Đặt phòng thành công!';
-    unset($_SESSION['success']); // Xóa message để không hiển thị lại
-    
-    // Lấy thông tin phòng để hiển thị
-    $booking_room_id = (int)($_GET['room_id'] ?? 0);
-    $booking_room = null;
-    if ($booking_room_id > 0) {
-        $room_result = $conn->query("SELECT * FROM rooms WHERE id = $booking_room_id");
-        $booking_room = $room_result->fetch_assoc();
-    }
-    
-    // Hiển thị thông báo lỗi nếu có
-    if (isset($_SESSION['error'])) {
-        echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>' . $_SESSION['error'] . '
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>';
-        unset($_SESSION['error']);
-    }
-?>
-
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-success">
-                <div class="card-header bg-success text-white text-center">
-                    <h2 class="mb-0"><i class="fas fa-check-circle"></i> Đặt phòng thành công!</h2>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success text-center">
-                        <p class="fs-5 mb-0"><?php echo $success_message; ?></p>
-                    </div>
-                    
-                    <?php if ($booking_room): ?>
-                    <div class="card bg-light mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h3 class="mb-0"><i class="fas fa-info-circle"></i> Thông tin phòng đã đặt</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong><i class="fas fa-building"></i> Phòng:</strong> <?php echo $booking_room['room_number']; ?> - <?php echo $booking_room['type']; ?></p>
-                                    <p class="mb-2"><strong><i class="fas fa-dollar-sign"></i> Giá:</strong> <span class="text-success fw-bold"><?php echo number_format($booking_room['price'], 0, ',', '.'); ?> VND</span> / đêm</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong><i class="fas fa-info-circle"></i> Trạng thái:</strong> <span class="badge bg-success">Đã đặt</span></p>
-                                    <p class="mb-0"><strong><i class="fas fa-map-marker-alt"></i> Vị trí:</strong> <?php echo htmlspecialchars($booking_room['description'] ?? 'Không có mô tả'); ?></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <div class="text-center">
-                        <a href="index.php" class="btn btn-primary btn-lg me-3">
-                            <i class="fas fa-home"></i> Về danh sách phòng
-                        </a>
-                        <a href="index.php" class="btn btn-success btn-lg">
-                            <i class="fas fa-calendar-plus"></i> Đặt phòng khác
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php
-} else {
-    // Hiển thị form đặt phòng
-    
-    // Hiển thị thông báo lỗi nếu có
-    if (isset($_SESSION['error'])) {
-        echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>' . $_SESSION['error'] . '
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>';
-        unset($_SESSION['error']);
-    }
-    
-    // Hiển thị thông báo thành công nếu có
-    if (isset($_SESSION['success'])) {
-        echo '<div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i>' . $_SESSION['success'] . '
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>';
-        unset($_SESSION['success']);
-    }
+// Hiển thị thông báo lỗi nếu có
+if (isset($_SESSION['error'])) {
+    echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>' . $_SESSION['error'] . '
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>';
+    unset($_SESSION['error']);
+}
 ?>
 
 <div class="container mt-4">
@@ -240,8 +157,8 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
                                 </label>
                                 <input type="date" class="form-control" id="checkin" name="checkin" 
                                        min="<?php echo date('Y-m-d'); ?>" required>
-                                <div class="invalid-feedback">
-                                    Vui lòng chọn ngày nhận phòng
+                                <div class="invalid-feedback" id="checkinError" style="display: none;">
+                                    Vui lòng chọn ngày nhận phòng hợp lệ
                                 </div>
                             </div>
                             
@@ -251,8 +168,8 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
                                 </label>
                                 <input type="date" class="form-control" id="checkout" name="checkout" 
                                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" required>
-                                <div class="invalid-feedback">
-                                    Vui lòng chọn ngày trả phòng
+                                <div class="invalid-feedback" id="checkoutError" style="display: none;">
+                                    Vui lòng chọn ngày trả phòng hợp lệ
                                 </div>
                             </div>
                             
@@ -286,7 +203,16 @@ function calculateTotal() {
     const checkin = new Date(checkinInput.value);
     const checkout = new Date(checkoutInput.value);
     
-    if (checkin && checkout && checkout > checkin) {
+    // Clear previous error messages
+    clearDateErrors();
+    
+    if (checkin && checkout) {
+        if (checkout <= checkin) {
+            showDateError('checkout', 'Vui lòng chọn ngày trả phòng hợp lệ (sau ngày nhận phòng)');
+            totalPriceDiv.style.display = 'none';
+            return;
+        }
+        
         const nights = (checkout - checkin) / (1000 * 60 * 60 * 24);
         const total = roomPrice * nights;
         totalAmountSpan.textContent = total.toLocaleString('vi-VN');
@@ -297,15 +223,95 @@ function calculateTotal() {
     }
 }
 
+function showDateError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const errorDiv = document.getElementById(fieldId + 'Error');
+    
+    field.classList.add('is-invalid');
+    field.classList.remove('is-valid');
+    
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+}
+
+function clearDateErrors() {
+    const fields = ['checkin', 'checkout'];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + 'Error');
+        
+        field.classList.remove('is-invalid');
+        field.classList.remove('is-valid');
+        
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+    });
+}
+
+function validateDate(fieldId) {
+    const field = document.getElementById(fieldId);
+    const value = field.value;
+    
+    if (!value) {
+        showDateError(fieldId, 'Vui lòng chọn ngày');
+        return false;
+    }
+    
+    const selectedDate = new Date(value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (fieldId === 'checkin') {
+        if (selectedDate < today) {
+            showDateError(fieldId, 'Ngày nhận phòng không được là ngày trong quá khứ');
+            return false;
+        }
+    }
+    
+    if (fieldId === 'checkout') {
+        const checkinDate = new Date(document.getElementById('checkin').value);
+        if (selectedDate <= checkinDate) {
+            showDateError(fieldId, 'Ngày trả phòng phải sau ngày nhận phòng');
+            return false;
+        }
+    }
+    
+    // Valid
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+    const errorDiv = document.getElementById(fieldId + 'Error');
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
+    
+    return true;
+}
+
 checkinInput.addEventListener('change', function() {
     // Cập nhật ngày trả phòng tối thiểu
     const checkin = new Date(this.value);
     checkin.setDate(checkin.getDate() + 1);
     checkoutInput.min = checkin.toISOString().split('T')[0];
+    
+    // Validate checkin date
+    validateDate('checkin');
+    
+    // Clear checkout if it's now invalid
+    if (checkoutInput.value && new Date(checkoutInput.value) <= checkin) {
+        checkoutInput.value = '';
+        clearDateErrors();
+    }
+    
     calculateTotal();
 });
 
-checkoutInput.addEventListener('change', calculateTotal);
+checkoutInput.addEventListener('change', function() {
+    validateDate('checkout');
+    calculateTotal();
+});
 
 // Form validation
 (function() {
@@ -314,7 +320,11 @@ checkoutInput.addEventListener('change', calculateTotal);
         var forms = document.getElementsByClassName('needs-validation');
         var validation = Array.prototype.filter.call(forms, function(form) {
             form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
+                // Validate date fields first
+                const checkinValid = validateDate('checkin');
+                const checkoutValid = validateDate('checkout');
+                
+                if (form.checkValidity() === false || !checkinValid || !checkoutValid) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
@@ -324,9 +334,5 @@ checkoutInput.addEventListener('change', calculateTotal);
     }, false);
 })();
 </script>
-
-<?php
-}
-?>
 
 <?php include "includes/footer.php"; ?>

@@ -250,6 +250,9 @@ include "includes/header.php";
                         <td>
                             <?php
                             switch ($booking['status']) {
+                                case 'pending_payment':
+                                    echo '<span class="badge bg-warning">⏳ Chờ thanh toán</span>';
+                                    break;
                                 case 'booked':
                                     echo '<span class="badge bg-primary">📅 Đang hoạt động</span>';
                                     break;
@@ -270,27 +273,45 @@ include "includes/header.php";
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php if ($booking['status'] === 'booked'): ?>
-                                <!-- Cancel booking -->
-                                <form method="POST" class="d-inline" 
-                                      onsubmit="return confirm('Bạn có chắc muốn HỦY booking #<?php echo $booking['id']; ?>?\n\nPhòng <?php echo $booking['room_number']; ?> sẽ trở về trạng thái trống.')">
-                                    <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
-                                    <button type="submit" name="cancel_booking" 
-                                            class="btn btn-warning btn-sm">
+                            <div class="d-flex flex-column gap-1">
+                                <?php if ($booking['status'] === 'pending_payment'): ?>
+                                    <!-- Payment button for pending payment -->
+                                    <a href="payment_form.php?booking_id=<?php echo $booking['id']; ?>" 
+                                       class="btn btn-warning btn-sm">
+                                        💳 Thanh toán
+                                    </a>
+                                    <!-- Cancel booking -->
+                                    <a href="cancel_booking.php?booking_id=<?php echo $booking['id']; ?>" 
+                                       class="btn btn-danger btn-sm">
                                         ❌ Hủy booking
-                                    </button>
-                                </form>
-                            <?php elseif ($booking['status'] === 'cancelled'): ?>
-                                <!-- Restore booking -->
-                                <form method="POST" class="d-inline" 
-                                      onsubmit="return confirm('Bạn có chắc muốn KHÔI PHỤC booking #<?php echo $booking['id']; ?>?\n\nPhòng <?php echo $booking['room_number']; ?> sẽ được đánh dấu là đã đặt.')">
-                                    <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
-                                    <button type="submit" name="restore_booking" 
-                                            class="btn btn-success btn-sm">
-                                        🔄 Khôi phục
-                                    </button>
-                                </form>
-                            <?php endif; ?>
+                                    </a>
+                                <?php elseif ($booking['status'] === 'booked'): ?>
+                                    <!-- Payment button -->
+                                    <a href="payment_form.php?booking_id=<?php echo $booking['id']; ?>" 
+                                       class="btn btn-primary btn-sm">
+                                        💳 Thanh toán
+                                    </a>
+                                    <!-- Cancel booking -->
+                                    <form method="POST" class="d-inline" 
+                                          onsubmit="return confirm('Bạn có chắc muốn HỦY booking #<?php echo $booking['id']; ?>?\n\nPhòng <?php echo $booking['room_number']; ?> sẽ trở về trạng thái trống.')">
+                                        <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
+                                        <button type="submit" name="cancel_booking" 
+                                                class="btn btn-warning btn-sm">
+                                            ❌ Hủy booking
+                                        </button>
+                                    </form>
+                                <?php elseif ($booking['status'] === 'cancelled'): ?>
+                                    <!-- Restore booking -->
+                                    <form method="POST" class="d-inline" 
+                                          onsubmit="return confirm('Bạn có chắc muốn KHÔI PHỤC booking #<?php echo $booking['id']; ?>?\n\nPhòng <?php echo $booking['room_number']; ?> sẽ được đánh dấu là đã đặt.')">
+                                        <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
+                                        <button type="submit" name="restore_booking" 
+                                                class="btn btn-success btn-sm">
+                                            🔄 Khôi phục
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                     <?php endwhile; ?>
