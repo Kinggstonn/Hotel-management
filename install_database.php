@@ -116,6 +116,7 @@ try {
     echo "<p>Các tính năng đã được cài đặt:</p>";
     echo "<ul>";
     echo "<li>✅ Hệ thống đăng nhập và phân quyền</li>";
+    echo "<li>✅ Chức năng quên mật khẩu với token bảo mật</li>";
     echo "<li>✅ Quản lý phòng với giá theo đêm</li>";
     echo "<li>✅ Đặt phòng với trạng thái pending_payment</li>";
     echo "<li>✅ Hệ thống thanh toán với thông tin thẻ</li>";

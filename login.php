@@ -171,6 +171,13 @@ $page_title = "Đăng nhập - Hotel Management";
                     </button>
                 </form>
                 
+                <!-- Forgot Password Link -->
+                <div class="text-center mb-3">
+                    <a href="forgot_password.php" class="text-decoration-none">
+                        <i class="fas fa-key"></i> Quên mật khẩu?
+                    </a>
+                </div>
+                
                 <!-- Quick Login Buttons -->
                 <div class="d-grid gap-2">
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickLogin('admin', 'admin123')">

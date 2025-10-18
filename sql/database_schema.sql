@@ -178,6 +178,18 @@ CREATE TABLE activity_logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Password Resets table (Forgot Password)
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- ================================================
 -- 11. INDEXES CHO HIỆU SUẤT
 -- ================================================
@@ -190,6 +202,8 @@ CREATE INDEX idx_payments_card ON payments(card_number);
 CREATE INDEX idx_room_services_status ON room_services(status);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_rooms_status ON rooms(status);
+CREATE INDEX idx_password_resets_token ON password_resets(token);
+CREATE INDEX idx_password_resets_email ON password_resets(email);
 
 -- ================================================
 -- 12. DỮ LIỆU MẪU
@@ -377,6 +391,7 @@ COMMIT;
 -- 
 -- Các tính năng chính:
 -- ✅ Hệ thống đăng nhập và phân quyền
+-- ✅ Chức năng quên mật khẩu với token bảo mật
 -- ✅ Quản lý phòng với giá theo đêm
 -- ✅ Đặt phòng với trạng thái pending_payment
 -- ✅ Hệ thống thanh toán với thông tin thẻ
@@ -401,5 +416,16 @@ COMMIT;
 -- - paid: Đã thanh toán
 -- - partial: Thanh toán một phần
 -- - refunded: Đã hoàn tiền
+-- 
+-- Chức năng quên mật khẩu:
+-- - password_resets: Bảng lưu token đặt lại mật khẩu
+-- - Token có hiệu lực 1 giờ
+-- - One-time use (chỉ dùng 1 lần)
+-- - Bảo mật với random token 64 ký tự
+-- 
+-- Files liên quan:
+-- - forgot_password.php: Trang yêu cầu đặt lại mật khẩu
+-- - reset_password.php: Trang đặt lại mật khẩu mới
+-- - login.php: Có link "Quên mật khẩu?"
 -- 
 -- ================================================
