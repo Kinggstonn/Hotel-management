@@ -128,7 +128,6 @@ include "includes/header.php";
 <?php if (!empty($error_message) && strpos($error_message, 'Database chưa được thiết lập') === false): ?>
 <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                     <i class="fas fa-exclamation-triangle"></i> <?php echo $error_message; ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 

@@ -7,30 +7,23 @@ $page_title = "Đặt lại mật khẩu - Hotel Management";
 $error_message = "";
 $success_message = "";
 
-$token = isset($_GET['token']) ? $_GET['token'] : '';
+$reset_context = $_SESSION['password_reset_context'] ?? null;
 $valid_token = false;
 $user_info = null;
 
-// Validate token
-if (!empty($token)) {
-    $token_query = $conn->prepare("
-        SELECT pr.*, u.username, u.full_name, u.email 
-        FROM password_resets pr 
-        JOIN users u ON pr.user_id = u.id 
-        WHERE pr.token = ? AND pr.expires_at > NOW() AND pr.used = 0
-    ");
-    $token_query->bind_param("s", $token);
-    $token_query->execute();
-    $result = $token_query->get_result();
-    
-    if ($result->num_rows > 0) {
-        $valid_token = true;
-        $user_info = $result->fetch_assoc();
-    } else {
-        $error_message = "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn!";
-    }
+if ($reset_context && isset($reset_context['expires_at']) && $reset_context['expires_at'] > time()) {
+    $valid_token = true;
+    $user_info = [
+        'user_id' => $reset_context['user_id'],
+        'username' => $reset_context['username'],
+        'full_name' => $reset_context['full_name'],
+        'email' => $reset_context['email'],
+        'token' => $reset_context['token'] ?? null
+    ];
 } else {
-    $error_message = "Thiếu token đặt lại mật khẩu!";
+    unset($_SESSION['password_reset_context']);
+    header('Location: forgot_password.php');
+    exit();
 }
 
 // Handle password reset
@@ -56,15 +49,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_password']) && 
             $update_query->bind_param("si", $hashed_password, $user_info['user_id']);
             
             if ($update_query->execute()) {
-                // Mark token as used
-                $mark_used_query = $conn->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
-                $mark_used_query->bind_param("s", $token);
-                $mark_used_query->execute();
+                // Mark token as used if available
+                if (!empty($user_info['token'])) {
+                    $mark_used_query = $conn->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
+                    $mark_used_query->bind_param("s", $user_info['token']);
+                    $mark_used_query->execute();
+                }
                 
                 $conn->commit();
                 
                 $success_message = "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.";
                 $valid_token = false; // Prevent further use
+                unset($_SESSION['password_reset_context']);
             } else {
                 $conn->rollback();
                 $error_message = "Có lỗi xảy ra khi cập nhật mật khẩu!";
@@ -93,14 +89,12 @@ include "includes/header.php";
                     <?php if (!empty($error_message)): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-triangle"></i> <?php echo $error_message; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
                     <?php if (!empty($success_message)): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         
                         <div class="text-center mt-4">
@@ -171,20 +165,6 @@ include "includes/header.php";
                                 </button>
                             </div>
                         </form>
-                    <?php endif; ?>
-
-                    <?php if (!$valid_token && empty($success_message)): ?>
-                        <div class="text-center">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <h5>Link không hợp lệ</h5>
-                                <p class="mb-0">Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.</p>
-                            </div>
-                            
-                            <a href="forgot_password.php" class="btn btn-primary">
-                                <i class="fas fa-redo"></i> Yêu cầu link mới
-                            </a>
-                        </div>
                     <?php endif; ?>
 
                     <hr class="my-4">

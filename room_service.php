@@ -139,14 +139,12 @@ include "includes/header.php";
 <?php if (!empty($success_message)): ?>
     <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
 <?php if (!empty($error_message)): ?>
     <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                         <i class="fas fa-exclamation-triangle"></i> <?php echo $error_message; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
@@ -378,7 +376,6 @@ include "includes/header.php";
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title"><i class="fas fa-edit"></i> Cập nhật trạng thái dịch vụ</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <form method="POST">
                                             <div class="modal-body">

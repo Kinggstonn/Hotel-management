@@ -37,7 +37,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $checkin_date = new DateTime($checkin);
     $checkout_date = new DateTime($checkout);
     $nights = $checkin_date->diff($checkout_date)->days;
-    $total_price = $room['price'] * $nights;
+    
+    if ($nights <= 0) {
+        $_SESSION['error'] = 'Ngày trả phòng phải lớn hơn ngày nhận phòng!';
+        header('Location: book.php?room_id=' . $room_id);
+        exit();
+    }
+    
+    $total_price = round($room['price'] * $nights, 2);
 
     // Lấy user_id hiện tại
     $current_user_id = getUserInfo()['id'];
@@ -96,7 +103,6 @@ include "includes/header.php";
 if (isset($_SESSION['error'])) {
     echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>' . $_SESSION['error'] . '
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>';
     unset($_SESSION['error']);
 }

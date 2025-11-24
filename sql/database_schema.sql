@@ -73,7 +73,7 @@ CREATE TABLE bookings (
     room_id INT NOT NULL,
     checkin DATE NOT NULL,
     checkout DATE NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(15,2) NOT NULL,
     status ENUM('pending_payment', 'booked', 'checked_in', 'checked_out', 'completed', 'cancelled', 'early_checkout') DEFAULT 'pending_payment',
     payment_status ENUM('unpaid', 'paid', 'partial', 'refunded') DEFAULT 'unpaid',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -89,7 +89,7 @@ CREATE TABLE bookings (
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
     payment_method ENUM('cash', 'card', 'bank_transfer', 'momo', 'zalopay') DEFAULT 'card',
     payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
     transaction_id VARCHAR(100) UNIQUE,

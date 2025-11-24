@@ -10,7 +10,7 @@ $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
 $transaction_id = isset($_GET['transaction_id']) ? $_GET['transaction_id'] : '';
 
 if (!$booking_id || !$transaction_id) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit();
 }
 
@@ -29,7 +29,7 @@ $booking_query = $conn->query("
 ");
 
 if ($booking_query->num_rows === 0) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit();
 }
 
@@ -38,8 +38,10 @@ $booking = $booking_query->fetch_assoc();
 // Calculate total amount
 $checkin = new DateTime($booking['checkin']);
 $checkout = new DateTime($booking['checkout']);
-$nights = $checkin->diff($checkout)->days;
-$total_amount = $booking['price'] * $nights;
+$nights = max($checkin->diff($checkout)->days, 1);
+$calculated_total = round($booking['price'] * $nights, 2);
+$stored_total = isset($booking['total_price']) ? (float)$booking['total_price'] : 0;
+$total_amount = $stored_total > 0 ? $stored_total : $calculated_total;
 
 include "includes/header.php";
 ?>
@@ -51,7 +53,7 @@ include "includes/header.php";
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb justify-content-center">
                     <li class="breadcrumb-item">
-                        <a href="dashboard.php" class="text-decoration-none d-flex align-items-center">
+                        <a href="index.php" class="text-decoration-none d-flex align-items-center">
                             <i class="fas fa-home me-1"></i> 
                             <span>Trang chủ</span>
                         </a>
@@ -206,7 +208,7 @@ include "includes/header.php";
                         <button type="button" class="btn btn-success btn-lg" onclick="downloadPDF()">
                             <i class="fas fa-download"></i> Tải PDF
                         </button>
-                        <a href="dashboard.php" class="btn btn-secondary btn-lg" style="background-color: #6c757d; border-color: #6c757d;">
+                        <a href="index.php" class="btn btn-secondary btn-lg" style="background-color: #6c757d; border-color: #6c757d;">
                             <i class="fas fa-home"></i> Về trang chủ
                         </a>
                         <a href="my_bookings.php" class="btn btn-info btn-lg">

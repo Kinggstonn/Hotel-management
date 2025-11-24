@@ -14,25 +14,31 @@ $current_month = date('Y-m');
 $monthly_stats = $conn->query("
     SELECT 
         COUNT(*) as total_bookings,
-        COALESCE(SUM(total_price), 0) as total_revenue,
-        AVG(total_price) as avg_booking_value
+        COALESCE(SUM(total_price), 0) as total_revenue
     FROM bookings 
     WHERE DATE_FORMAT(checkin, '%Y-%m') = '$current_month'
     AND status != 'cancelled'
     AND checkin <= CURDATE()
 ")->fetch_assoc();
+$monthly_stats['avg_booking_value'] = $monthly_stats['total_bookings'] > 0
+    ? $monthly_stats['total_revenue'] / $monthly_stats['total_bookings']
+    : 0;
 
-// Top khách hàng (chỉ tính booking đã hoàn thành, không tính cancelled)
+// Top khách hàng - hiển thị tất cả khách có giao dịch, thống kê chính xác số booking và tổng chi tiêu
 $top_customers = $conn->query("
-    SELECT g.name, g.phone, COUNT(b.id) as bookings, SUM(b.total_price) as total_spent
-    FROM guests g
-    JOIN bookings b ON g.id = b.guest_id
+    SELECT 
+        g.id,
+        g.name, 
+        g.phone, 
+        COUNT(b.id) as bookings, 
+        COALESCE(SUM(b.total_price), 0) as total_spent
+    FROM bookings b
+    JOIN guests g ON g.id = b.guest_id
     WHERE b.status != 'cancelled'
     AND b.checkin <= CURDATE()
-    GROUP BY g.id 
+    GROUP BY g.id, g.name, g.phone
     HAVING total_spent > 0
-    ORDER BY total_spent DESC 
-    LIMIT 5
+    ORDER BY total_spent DESC
 ");
 
 // Thống kê theo loại phòng

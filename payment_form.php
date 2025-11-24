@@ -13,7 +13,7 @@ $error_message = "";
 $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
 
 if (!$booking_id) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit();
 }
 
@@ -28,7 +28,7 @@ $booking_query = $conn->query("
 ");
 
 if ($booking_query->num_rows === 0) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit();
 }
 
@@ -37,8 +37,22 @@ $booking = $booking_query->fetch_assoc();
 // Calculate total amount
 $checkin = new DateTime($booking['checkin']);
 $checkout = new DateTime($booking['checkout']);
-$nights = $checkin->diff($checkout)->days;
-$total_amount = $booking['price'] * $nights;
+$nights = max($checkin->diff($checkout)->days, 1);
+$calculated_total = round($booking['price'] * $nights, 2);
+$stored_total = isset($booking['total_price']) ? (float)$booking['total_price'] : 0;
+$total_amount = $stored_total > 0 ? $stored_total : $calculated_total;
+$should_fix_total = $stored_total >= 99999999 && $calculated_total > $stored_total;
+
+if ($should_fix_total || $stored_total <= 0) {
+    $total_amount = $calculated_total;
+    $update_total = $conn->prepare("UPDATE bookings SET total_price = ? WHERE id = ?");
+    if ($update_total) {
+        $update_total->bind_param("di", $total_amount, $booking_id);
+        $update_total->execute();
+        $update_total->close();
+    }
+    $booking['total_price'] = $total_amount;
+}
 
 // Handle payment processing
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
@@ -47,41 +61,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
     $card_cvv = trim($_POST['card_cvv']);
     $card_expiry = trim($_POST['card_expiry']);
     
-    // Validation
     if (empty($card_number) || empty($card_name) || empty($card_cvv) || empty($card_expiry)) {
         $error_message = "❌ Vui lòng nhập đầy đủ thông tin thanh toán";
     } else {
+        $card_number_clean = preg_replace('/\D/', '', $card_number);
+        
         // Validate card number (Luhn algorithm)
-        function validateCardNumber($cardNumber) {
-            $cardNumber = preg_replace('/\D/', '', $cardNumber);
-            $length = strlen($cardNumber);
-            $sum = 0;
-            $alternate = false;
-            
-            for ($i = $length - 1; $i >= 0; $i--) {
-                $digit = intval($cardNumber[$i]);
-                
-                if ($alternate) {
-                    $digit *= 2;
-                    if ($digit > 9) {
-                        $digit = ($digit % 10) + 1;
+        $is_valid_card = false;
+        if ($card_number_clean !== '') {
+            $length = strlen($card_number_clean);
+            if ($length >= 12 && $length <= 19) {
+                $sum = 0;
+                $alternate = false;
+                for ($i = $length - 1; $i >= 0; $i--) {
+                    $digit = intval($card_number_clean[$i]);
+                    if ($alternate) {
+                        $digit *= 2;
+                        if ($digit > 9) {
+                            $digit = ($digit % 10) + 1;
+                        }
                     }
+                    $sum += $digit;
+                    $alternate = !$alternate;
                 }
-                
-                $sum += $digit;
-                $alternate = !$alternate;
+                $is_valid_card = ($sum % 10) === 0;
             }
-            
-            return ($sum % 10) === 0;
         }
         
-        // Check for valid test card
-        if ($card_number === '4111111111111111') {
-            // Valid test card - process payment
+        if (!$is_valid_card) {
+            $error_message = "❌ Số thẻ không hợp lệ. Vui lòng kiểm tra lại!";
+        } elseif (!preg_match('/^\d{3,4}$/', $card_cvv)) {
+            $error_message = "❌ CVV phải gồm 3-4 chữ số.";
+        } elseif (!preg_match('/^(0[1-9]|1[0-2])\/\d{2}$/', $card_expiry)) {
+            $error_message = "❌ Ngày hết hạn không đúng định dạng MM/YY.";
+        } else {
             try {
                 $conn->begin_transaction();
                 
-                // Insert payment record
                 $insert_payment = $conn->prepare("
                     INSERT INTO payments (booking_id, amount, payment_method, payment_status, 
                                         transaction_id, card_number, card_name, card_expiry, processed_by) 
@@ -91,22 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
                 $transaction_id = 'TXN_' . date('Ymd') . '_' . $booking_id . '_' . time();
                 $user_id = $_SESSION['user_id'];
                 
-                // Mask card number for security
-                $masked_card = substr($card_number, 0, 4) . '****' . substr($card_number, -4);
+                $masked_card = substr($card_number_clean, 0, 4) . '****' . substr($card_number_clean, -4);
                 
                 $insert_payment->bind_param("idssssi", $booking_id, $total_amount, $transaction_id, 
                                            $masked_card, $card_name, $card_expiry, $user_id);
                 $insert_payment->execute();
                 
-                // Update booking payment status and room status
-                $conn->query("UPDATE bookings SET payment_status = 'paid', status = 'booked' WHERE id = $booking_id");
+                $update_booking = $conn->prepare("UPDATE bookings SET payment_status = 'paid', status = 'booked', total_price = ? WHERE id = ?");
+                $update_booking->bind_param("di", $total_amount, $booking_id);
+                $update_booking->execute();
                 
-                // Update room status to booked (chỉ khi thanh toán thành công)
-                $conn->query("UPDATE rooms SET status = 'booked' WHERE id = " . $booking['room_id']);
+                $update_room = $conn->prepare("UPDATE rooms SET status = 'booked' WHERE id = ?");
+                $update_room->bind_param("i", $booking['room_id']);
+                $update_room->execute();
                 
                 $conn->commit();
                 
-                // Redirect to invoice page
                 header("Location: invoice.php?booking_id=$booking_id&transaction_id=$transaction_id");
                 exit();
                 
@@ -114,9 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
                 $conn->rollback();
                 $error_message = "❌ Lỗi xử lý thanh toán: " . $e->getMessage();
             }
-        } else {
-            // Invalid card
-            $error_message = "❌ Thẻ không hợp lệ";
         }
     }
 }
@@ -136,7 +149,6 @@ include "includes/header.php";
                     <?php if (!empty($error_message)): ?>
                         <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                             <i class="fas fa-exclamation-triangle"></i> <?php echo $error_message; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         <div class="alert alert-warning mb-4">
                             <h6><i class="fas fa-info-circle"></i> Thanh toán thất bại!</h6>
@@ -158,7 +170,6 @@ include "includes/header.php";
                     <?php if (!empty($_SESSION['success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                             <i class="fas fa-check-circle"></i> <?php echo $_SESSION['success']; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         <?php unset($_SESSION['success']); ?>
                     <?php endif; ?>
@@ -312,21 +323,6 @@ $(document).ready(function() {
         this.value = this.value.replace(/[^0-9]/g, '');
     });
     
-    // Auto-fill test data on page load
-    $('#card_number').val('4111111111111111');
-    $('#card_name').val('Nguyen Van A');
-    $('#card_cvv').val('123');
-    $('#card_expiry').val('12/25');
-    
-    // Auto-fill test data when focus (backup)
-    $('#card_number').on('focus', function() {
-        if (this.value === '') {
-            this.value = '4111111111111111';
-            $('#card_name').val('Nguyen Van A');
-            $('#card_cvv').val('123');
-            $('#card_expiry').val('12/25');
-        }
-    });
 });
 
 function calculateTotal() {

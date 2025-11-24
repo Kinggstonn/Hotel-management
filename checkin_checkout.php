@@ -122,7 +122,7 @@ include "includes/header.php";
             JOIN rooms r ON b.room_id = r.id
             JOIN guests g ON b.guest_id = g.id
             LEFT JOIN users u ON g.user_id = u.id
-            WHERE b.checkin = '$today' AND b.status IN ('booked', 'checked_in')
+            WHERE b.checkin = '$today' AND b.status IN ('pending_payment','booked', 'checked_in')
             ORDER BY r.room_number
         ");
         ?>
@@ -155,10 +155,12 @@ include "includes/header.php";
                                 <td>
                                     <?php
                                     $status_badges = [
+                                        'pending_payment' => 'bg-secondary',
                                         'booked' => 'bg-primary',
                                         'checked_in' => 'bg-success'
                                     ];
                                     $status_text = [
+                                        'pending_payment' => '💳 Chờ thanh toán',
                                         'booked' => '📋 Chờ check-in',
                                         'checked_in' => '🏠 Đã check-in'
                                     ];
@@ -173,9 +175,13 @@ include "includes/header.php";
                                         <form method="POST" class="d-inline">
                                             <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
                                             <button type="submit" name="checkin" class="btn btn-success btn-lg">
-                                                <i class="fas fa-key"></i> <i class="fas fa-lock"></i> Check-in
+                                                <i class="fas fa-key"></i> Check-in
                                             </button>
                                         </form>
+                                    <?php elseif ($booking['status'] === 'pending_payment'): ?>
+                                        <a href="payment_form.php?booking_id=<?php echo $booking['id']; ?>" class="btn btn-outline-primary btn-sm">
+                                            💳 Thu tiền
+                                        </a>
                                     <?php else: ?>
                                         <span class="text-success small">✅ Đã nhận phòng</span>
                                     <?php endif; ?>
@@ -364,7 +370,7 @@ include "includes/header.php";
         FROM rooms
     ")->fetch_assoc();
     
-    $checkin_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE checkin = '$today' AND status = 'booked'")->fetch_assoc();
+    $checkin_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE checkin = '$today' AND status IN ('pending_payment','booked')")->fetch_assoc();
     $checkout_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE checkout = '$today' AND status = 'checked_in'")->fetch_assoc();
     ?>
     

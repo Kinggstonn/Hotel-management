@@ -74,7 +74,6 @@ include "includes/header.php";
                     <?php if (isset($_SESSION['error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                             <i class="fas fa-exclamation-triangle"></i> <?php echo $_SESSION['error']; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         <?php unset($_SESSION['error']); ?>
                     <?php endif; ?>

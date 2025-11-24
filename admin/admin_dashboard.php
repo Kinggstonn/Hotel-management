@@ -61,10 +61,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $stats = [];
 try {
     // Kiểm tra các bảng tồn tại
-    $users_exists = $conn->query("SHOW TABLES LIKE 'users'")->num_rows > 0;
-    $rooms_exists = $conn->query("SHOW TABLES LIKE 'rooms'")->num_rows > 0;
-    $bookings_exists = $conn->query("SHOW TABLES LIKE 'bookings'")->num_rows > 0;
-    $room_services_exists = $conn->query("SHOW TABLES LIKE 'room_services'")->num_rows > 0;
+$db_name = isset($db) ? $db : ($conn->query("SELECT DATABASE()")->fetch_row()[0] ?? '');
+
+function tableExists(mysqli $conn, string $schema, string $table): bool {
+    $schema_safe = $conn->real_escape_string($schema);
+    $table_safe = $conn->real_escape_string($table);
+    $sql = "
+        SELECT COUNT(*) AS table_exists
+        FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_SCHEMA = '$schema_safe' AND TABLE_NAME = '$table_safe'
+    ";
+    
+    $result = $conn->query($sql);
+    if (!$result) {
+        return false;
+    }
+    
+    $row = $result->fetch_assoc();
+    return $row && (int)$row['table_exists'] > 0;
+}
+
+$users_exists = tableExists($conn, $db_name, 'users');
+$rooms_exists = tableExists($conn, $db_name, 'rooms');
+$bookings_exists = tableExists($conn, $db_name, 'bookings');
+$room_services_exists = tableExists($conn, $db_name, 'room_services');
     
     if ($users_exists) {
         $users_stats = $conn->query("
@@ -284,6 +304,8 @@ if ($bookings_exists && $rooms_exists) {
             border-radius: 1rem;
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            table-layout: fixed;
+            width: 100%;
         }
         
         .table-custom thead th {
@@ -298,12 +320,44 @@ if ($bookings_exists && $rooms_exists) {
             padding: 1rem;
             vertical-align: middle;
         }
+
+        .table-custom th:nth-child(1),
+        .table-custom td:nth-child(1) {
+            width: 7%;
+            text-align: center;
+        }
         
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .table-custom th:nth-child(2),
+        .table-custom td:nth-child(2) {
+            width: 18%;
+        }
+        
+        .table-custom th:nth-child(3),
+        .table-custom td:nth-child(3) {
+            width: 15%;
+        }
+        
+        .table-custom th:nth-child(4),
+        .table-custom td:nth-child(4) {
+            width: 20%;
+        }
+        
+        .table-custom th:nth-child(5),
+        .table-custom td:nth-child(5) {
+            width: 15%;
+            text-align: center;
+        }
+        
+        .table-custom th:nth-child(6),
+        .table-custom td:nth-child(6) {
+            width: 15%;
+            text-align: center;
+        }
+        
+        .table-custom th:nth-child(7),
+        .table-custom td:nth-child(7) {
+            width: 10%;
+            text-align: center;
         }
         
         .database-status {
@@ -657,10 +711,9 @@ if ($bookings_exists && $rooms_exists) {
                                 <th>Username</th>
                                 <th>Họ tên</th>
                                 <th>Email</th>
-                                <th>Vai trò</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày tạo</th>
-                                <th>Hành động</th>
+                            <th>Vai trò</th>
+                            <th>Ngày tạo</th>
+                            <th>Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -673,11 +726,6 @@ if ($bookings_exists && $rooms_exists) {
                                 <td>
                                     <span class="role-badge role-<?php echo $user['role']; ?>">
                                         <?php echo getRoleDisplayName($user['role']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="status-badge <?php echo $user['status'] === 'active' ? 'bg-success' : 'bg-danger'; ?>">
-                                                                                 <?php echo $user['status'] === 'active' ? '<i class="fas fa-check-circle"></i> Hoạt động' : '<i class="fas fa-times-circle"></i> Khóa'; ?>
                                     </span>
                                 </td>
                                 <td><?php echo $user['created_at'] ? date('d/m/Y H:i', strtotime($user['created_at'])) : 'N/A'; ?></td>

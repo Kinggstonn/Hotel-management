@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_password'])) {
     } else {
         // Clean input data
         $email = trim($email);
-        $phone = trim($phone);
+        $phone = preg_replace('/\D+/', '', $phone); // remove all formatting chars
         
         // Debug: Log the search parameters
         error_log("Forgot password search - Email: '$email', Phone: '$phone'");
@@ -42,18 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_password'])) {
                 ON DUPLICATE KEY UPDATE 
                 token = VALUES(token), 
                 expires_at = VALUES(expires_at), 
-                created_at = NOW()
+                created_at = NOW(),
+                used = 0
             ");
             $token_query->bind_param("isss", $user['id'], $email, $reset_token, $expires_at);
             
             if ($token_query->execute()) {
-                // Create reset URL
-                $reset_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=" . $reset_token;
+                // Lưu thông tin vào session để chuyển thẳng sang bước đặt mật khẩu mới
+                $_SESSION['password_reset_context'] = [
+                    'user_id' => $user['id'],
+                    'username' => $user['username'],
+                    'full_name' => $user['full_name'],
+                    'email' => $user['email'],
+                    'token' => $reset_token,
+                    'expires_at' => strtotime($expires_at)
+                ];
                 
-                $success_message = "Đã gửi link đặt lại mật khẩu đến email của bạn!";
-                $success_message .= "<br><br><strong>Link đặt lại mật khẩu:</strong><br>";
-                $success_message .= "<a href='$reset_url' class='btn btn-primary mt-2' target='_blank'>Đặt lại mật khẩu</a>";
-                $success_message .= "<br><small class='text-muted mt-2 d-block'>Link này có hiệu lực trong 1 giờ.</small>";
+                header('Location: reset_password.php');
+                exit();
             } else {
                 $error_message = "Có lỗi xảy ra khi tạo link đặt lại mật khẩu!";
             }
@@ -80,14 +86,12 @@ include "includes/header.php";
                     <?php if (!empty($error_message)): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-triangle"></i> <?php echo $error_message; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
                     <?php if (!empty($success_message)): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
@@ -132,22 +136,6 @@ include "includes/header.php";
                 </div>
             </div>
 
-            <!-- Help Section -->
-            <div class="card shadow border-0 mt-4">
-                <div class="card-body text-center">
-                    <h6 class="card-title text-primary">
-                        <i class="fas fa-question-circle"></i> Cần hỗ trợ?
-                    </h6>
-                    <p class="card-text text-muted small mb-0">
-                        Nếu bạn gặp khó khăn, vui lòng liên hệ với quản trị viên hệ thống.
-                    </p>
-                    <div class="mt-3">
-                        <a href="debug_users.php" class="btn btn-outline-info btn-sm">
-                            <i class="fas fa-bug"></i> Debug dữ liệu users
-                        </a>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

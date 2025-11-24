@@ -43,18 +43,6 @@
             });
         });
 
-        // Bootstrap alert dismissal
-        document.querySelectorAll('.alert').forEach(alert => {
-            // Add close button if not present
-            if (!alert.querySelector('.btn-close')) {
-                const closeBtn = document.createElement('button');
-                closeBtn.className = 'btn-close';
-                closeBtn.setAttribute('data-bs-dismiss', 'alert');
-                closeBtn.setAttribute('aria-label', 'Close');
-                alert.appendChild(closeBtn);
-            }
-        });
-
         // Add current time
         function updateTime() {
             const now = new Date();
