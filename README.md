@@ -40,13 +40,6 @@ Hệ thống quản lý khách sạn đơn giản với đầy đủ tính năng
 4. Check-out → Hoàn thành
 ```
 
-## 🧪 Test thanh toán
-
-- **Thẻ hợp lệ:** `4111111111111111`
-- **Tên:** `Nguyen Van A`
-- **CVV:** `123`
-- **Ngày hết hạn:** `12/25`
-
 ## 📁 Cấu trúc file
 
 ```
