@@ -38,7 +38,7 @@ $top_customers = $conn->query("
     AND b.checkin <= CURDATE()
     GROUP BY g.id, g.name, g.phone
     HAVING total_spent > 0
-    ORDER BY total_spent DESC
+    ORDER BY total_spent DESC 
 ");
 
 // Thống kê theo loại phòng
@@ -83,7 +83,7 @@ $daily_revenue = $conn->query("
             <div class="col-lg-3 col-md-6 col-sm-12">
                 <div class="card bg-primary text-white text-center h-100 shadow">
                     <div class="card-body">
-                        <div class="display-4 fw-bold mb-2"><?php echo $monthly_stats['total_bookings']; ?></div>
+                        <div class="fs-1 fw-bold mb-2" style="white-space: nowrap;"><?php echo $monthly_stats['total_bookings']; ?></div>
                         <div class="fs-5">📝 Tổng booking</div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@ $daily_revenue = $conn->query("
             <div class="col-lg-3 col-md-6 col-sm-12">
                 <div class="card bg-success text-white text-center h-100 shadow">
                     <div class="card-body">
-                        <div class="display-4 fw-bold mb-2"><?php echo number_format($monthly_stats['total_revenue'], 0, ',', '.'); ?></div>
+                        <div class="fs-1 fw-bold mb-2" style="white-space: nowrap;"><?php echo number_format($monthly_stats['total_revenue'], 0, ',', '.'); ?></div>
                         <div class="fs-5"><i class="fas fa-dollar-sign"></i> Doanh thu (VND)</div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@ $daily_revenue = $conn->query("
             <div class="col-lg-3 col-md-6 col-sm-12">
                 <div class="card bg-info text-white text-center h-100 shadow">
                     <div class="card-body">
-                        <div class="display-4 fw-bold mb-2"><?php echo number_format($monthly_stats['avg_booking_value'], 0, ',', '.'); ?></div>
+                        <div class="fs-1 fw-bold mb-2" style="white-space: nowrap;"><?php echo number_format($monthly_stats['avg_booking_value'], 0, ',', '.'); ?></div>
                         <div class="fs-5"><i class="fas fa-chart-bar"></i> Giá trị TB/booking</div>
                     </div>
                 </div>
@@ -110,7 +110,7 @@ $daily_revenue = $conn->query("
             <div class="col-lg-3 col-md-6 col-sm-12">
                 <div class="card bg-warning text-dark text-center h-100 shadow">
                     <div class="card-body">
-                        <div class="display-4 fw-bold mb-2"><?php echo date('d'); ?></div>
+                        <div class="fs-1 fw-bold mb-2" style="white-space: nowrap;"><?php echo date('d'); ?></div>
                         <div class="fs-5">📆 Ngày trong tháng</div>
                     </div>
                 </div>

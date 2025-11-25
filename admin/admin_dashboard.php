@@ -58,11 +58,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // Get system statistics with error handling
-$stats = [];
-try {
-    // Kiểm tra các bảng tồn tại
-$db_name = isset($db) ? $db : ($conn->query("SELECT DATABASE()")->fetch_row()[0] ?? '');
+$stats = [
+    'active_users' => 0,
+    'admin_count' => 0,
+    'staff_count' => 0,
+    'customer_count' => 0,
+    'total_rooms' => 0,
+    'total_bookings' => 0,
+    'total_revenue' => 0,
+    'total_services' => 0,
+    'pending_services' => 0,
+    'in_progress_services' => 0,
+    'today_services' => 0
+];
 
+// Helper function to check if table exists
 function tableExists(mysqli $conn, string $schema, string $table): bool {
     $schema_safe = $conn->real_escape_string($schema);
     $table_safe = $conn->real_escape_string($table);
@@ -81,85 +91,82 @@ function tableExists(mysqli $conn, string $schema, string $table): bool {
     return $row && (int)$row['table_exists'] > 0;
 }
 
-$users_exists = tableExists($conn, $db_name, 'users');
-$rooms_exists = tableExists($conn, $db_name, 'rooms');
-$bookings_exists = tableExists($conn, $db_name, 'bookings');
-$room_services_exists = tableExists($conn, $db_name, 'room_services');
+try {
+    // Get database name
+    $db_result = $conn->query("SELECT DATABASE()");
+    $db_name = $db_result ? $db_result->fetch_row()[0] : 'hotel_management';
+    if (empty($db_name)) {
+        $db_name = 'hotel_management';
+    }
+    
+    // Kiểm tra các bảng tồn tại
+    $users_exists = tableExists($conn, $db_name, 'users');
+    $rooms_exists = tableExists($conn, $db_name, 'rooms');
+    $bookings_exists = tableExists($conn, $db_name, 'bookings');
+    $room_services_exists = tableExists($conn, $db_name, 'room_services');
     
     if ($users_exists) {
-        $users_stats = $conn->query("
+        $users_result = $conn->query("
             SELECT 
                 (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
                 (SELECT COUNT(*) FROM users WHERE role = 'admin') as admin_count,
                 (SELECT COUNT(*) FROM users WHERE role = 'staff') as staff_count,
                 (SELECT COUNT(*) FROM users WHERE role = 'customer') as customer_count
-        ")->fetch_assoc();
+        ");
         
-        $stats = array_merge($stats, $users_stats);
-    } else {
-        $stats['active_users'] = 0;
-        $stats['admin_count'] = 0;
-        $stats['staff_count'] = 0;
-        $stats['customer_count'] = 0;
+        if ($users_result && $users_result->num_rows > 0) {
+            $users_stats = $users_result->fetch_assoc();
+            $stats['active_users'] = (int)($users_stats['active_users'] ?? 0);
+            $stats['admin_count'] = (int)($users_stats['admin_count'] ?? 0);
+            $stats['staff_count'] = (int)($users_stats['staff_count'] ?? 0);
+            $stats['customer_count'] = (int)($users_stats['customer_count'] ?? 0);
+        }
     }
     
     if ($rooms_exists) {
-        $rooms_count = $conn->query("SELECT COUNT(*) as total_rooms FROM rooms")->fetch_assoc();
-        $stats['total_rooms'] = $rooms_count['total_rooms'];
-    } else {
-        $stats['total_rooms'] = 0;
+        $rooms_result = $conn->query("SELECT COUNT(*) as total_rooms FROM rooms");
+        if ($rooms_result && $rooms_result->num_rows > 0) {
+            $rooms_count = $rooms_result->fetch_assoc();
+            $stats['total_rooms'] = (int)($rooms_count['total_rooms'] ?? 0);
+        }
     }
     
     if ($bookings_exists) {
-        $bookings_stats = $conn->query("
+        $bookings_result = $conn->query("
             SELECT 
                 COUNT(*) as total_bookings,
                 COALESCE(SUM(total_price), 0) as total_revenue
             FROM bookings
-        ")->fetch_assoc();
+        ");
         
-        $stats['total_bookings'] = $bookings_stats['total_bookings'];
-        $stats['total_revenue'] = $bookings_stats['total_revenue'];
-    } else {
-        $stats['total_bookings'] = 0;
-        $stats['total_revenue'] = 0;
+        if ($bookings_result && $bookings_result->num_rows > 0) {
+            $bookings_stats = $bookings_result->fetch_assoc();
+            $stats['total_bookings'] = (int)($bookings_stats['total_bookings'] ?? 0);
+            $stats['total_revenue'] = (float)($bookings_stats['total_revenue'] ?? 0);
+        }
     }
     
     if ($room_services_exists) {
-        $room_services_stats = $conn->query("
+        $room_services_result = $conn->query("
             SELECT 
                 COUNT(*) as total_services,
                 COUNT(CASE WHEN status = 'requested' THEN 1 END) as pending_services,
                 COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_services,
                 COUNT(CASE WHEN DATE(requested_at) = CURDATE() THEN 1 END) as today_services
-        ")->fetch_assoc();
+        ");
         
-        $stats['total_services'] = $room_services_stats['total_services'];
-        $stats['pending_services'] = $room_services_stats['pending_services'];
-        $stats['in_progress_services'] = $room_services_stats['in_progress_services'];
-        $stats['today_services'] = $room_services_stats['today_services'];
-    } else {
-        $stats['total_services'] = 0;
-        $stats['pending_services'] = 0;
-        $stats['in_progress_services'] = 0;
-        $stats['today_services'] = 0;
+        if ($room_services_result && $room_services_result->num_rows > 0) {
+            $room_services_stats = $room_services_result->fetch_assoc();
+            $stats['total_services'] = (int)($room_services_stats['total_services'] ?? 0);
+            $stats['pending_services'] = (int)($room_services_stats['pending_services'] ?? 0);
+            $stats['in_progress_services'] = (int)($room_services_stats['in_progress_services'] ?? 0);
+            $stats['today_services'] = (int)($room_services_stats['today_services'] ?? 0);
+        }
     }
     
 } catch (Exception $e) {
     $error_message = "Lỗi khi lấy thống kê: " . $e->getMessage();
-    $stats = [
-        'active_users' => 0,
-        'admin_count' => 0,
-        'staff_count' => 0,
-        'customer_count' => 0,
-        'total_rooms' => 0,
-        'total_bookings' => 0,
-        'total_revenue' => 0,
-        'total_services' => 0,
-        'pending_services' => 0,
-        'in_progress_services' => 0,
-        'today_services' => 0
-    ];
+    // Stats đã được set giá trị mặc định ở đầu, không cần set lại
 }
 
 // Get all users if table exists
@@ -609,27 +616,24 @@ if ($bookings_exists && $rooms_exists) {
             </div>
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
-                            <i class="bi bi-crown-fill display-4 mb-3"></i>
-                            <h2 class="mb-2"><?php echo $stats['admin_count']; ?></h2>
-                            <p class="mb-0 fs-5">Quản trị viên</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white;">
-                            <i class="bi bi-person-badge-fill display-4 mb-3"></i>
-                            <h2 class="mb-2"><?php echo $stats['staff_count']; ?></h2>
-                            <p class="mb-0 fs-5">Nhân viên</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white;">
-                            <i class="bi bi-person-fill display-4 mb-3"></i>
-                            <h2 class="mb-2"><?php echo $stats['customer_count']; ?></h2>
-                            <p class="mb-0 fs-5">Khách hàng</p>
-                        </div>
-                    </div>
+                     <div class="col-md-4">
+                         <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
+                             <h2 class="mb-2"><?php echo $stats['admin_count']; ?></h2>
+                             <p class="mb-0 fs-5">Quản trị viên</p>
+                         </div>
+                     </div>
+                     <div class="col-md-4">
+                         <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white;">
+                             <h2 class="mb-2"><?php echo $stats['staff_count']; ?></h2>
+                             <p class="mb-0 fs-5">Nhân viên</p>
+                         </div>
+                     </div>
+                     <div class="col-md-4">
+                         <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white;">
+                             <h2 class="mb-2"><?php echo $stats['customer_count']; ?></h2>
+                             <p class="mb-0 fs-5">Khách hàng</p>
+                         </div>
+                     </div>
                 </div>
             </div>
         </div>

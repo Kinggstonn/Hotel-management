@@ -109,21 +109,21 @@ include "includes/header.php";
 <!-- Today's Check-ins -->
 <div class="card shadow mb-4">
     <div class="card-header bg-success text-white">
-        <h3 class="card-title fs-5 mb-0">📅 Check-in hôm nay (<?php echo date('d/m/Y'); ?>)</h3>
+        <h3 class="card-title fs-5 mb-0">📅 Danh sách Check-in</h3>
     </div>
     <div class="card-body">
         <?php
         $today = date('Y-m-d');
         $checkin_today = $conn->query("
-            SELECT b.id, b.status, r.room_number, r.floor, r.type,
+            SELECT b.id, b.status, b.checkin, r.room_number, r.floor, r.type,
                    g.name as guest_name, g.phone, g.id_card,
                    u.username
             FROM bookings b
             JOIN rooms r ON b.room_id = r.id
             JOIN guests g ON b.guest_id = g.id
             LEFT JOIN users u ON g.user_id = u.id
-            WHERE b.checkin = '$today' AND b.status IN ('pending_payment','booked', 'checked_in')
-            ORDER BY r.room_number
+            WHERE b.status IN ('pending_payment','booked', 'checked_in')
+            ORDER BY b.checkin ASC, r.room_number
         ");
         ?>
         
@@ -133,6 +133,7 @@ include "includes/header.php";
                     <thead class="table-success">
                         <tr>
                             <th>Booking ID</th>
+                            <th>Ngày check-in</th>
                             <th>Phòng</th>
                             <th>Khách hàng</th>
                             <th>SĐT</th>
@@ -145,6 +146,18 @@ include "includes/header.php";
                         <?php while ($booking = $checkin_today->fetch_assoc()): ?>
                             <tr>
                                 <td>#<?php echo $booking['id']; ?></td>
+                                <td>
+                                    <?php 
+                                    $checkin_date = date('d/m/Y', strtotime($booking['checkin']));
+                                    $is_today = $booking['checkin'] == $today;
+                                    ?>
+                                    <strong class="<?php echo $is_today ? 'text-danger' : ''; ?>">
+                                        <?php echo $checkin_date; ?>
+                                        <?php if ($is_today): ?>
+                                            <span class="badge bg-danger">Hôm nay</span>
+                                        <?php endif; ?>
+                                    </strong>
+                                </td>
                                 <td>
                                     <strong><?php echo $booking['room_number']; ?></strong><br>
                                     <small class="text-muted">Tầng <?php echo $booking['floor']; ?> - <?php echo $booking['type']; ?></small>
@@ -193,28 +206,28 @@ include "includes/header.php";
             </div>
         <?php else: ?>
             <div class="text-center text-muted py-4">
-                <p class="fs-5">📅 Không có check-in nào hôm nay</p>
+                <p class="fs-5">📅 Chưa có booking nào cần check-in</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Today's Check-outs -->
+<!-- Check-outs -->
 <div class="card shadow mb-4">
     <div class="card-header bg-warning text-dark">
-        <h3 class="card-title fs-5 mb-0">🚪 Check-out hôm nay (<?php echo date('d/m/Y'); ?>)</h3>
+        <h3 class="card-title fs-5 mb-0">🚪 Danh sách Check-out</h3>
     </div>
     <div class="card-body">
         <?php
         $checkout_today = $conn->query("
-            SELECT b.id, b.status, r.room_number, r.floor, r.type, b.total_price,
+            SELECT b.id, b.status, b.checkout, r.room_number, r.floor, r.type, b.total_price,
                    g.name as guest_name, g.phone,
                    DATEDIFF(b.checkout, b.checkin) as nights
             FROM bookings b
             JOIN rooms r ON b.room_id = r.id
             JOIN guests g ON b.guest_id = g.id
-            WHERE b.checkout = '$today' AND b.status IN ('checked_in', 'checked_out')
-            ORDER BY r.room_number
+            WHERE b.status IN ('checked_in', 'checked_out')
+            ORDER BY b.checkout ASC, r.room_number
         ");
         ?>
         
@@ -224,6 +237,7 @@ include "includes/header.php";
                     <thead class="table-warning">
                         <tr>
                             <th>Booking ID</th>
+                            <th>Ngày check-out</th>
                             <th>Phòng</th>
                             <th>Khách hàng</th>
                             <th>Số đêm</th>
@@ -236,6 +250,18 @@ include "includes/header.php";
                         <?php while ($booking = $checkout_today->fetch_assoc()): ?>
                             <tr>
                                 <td>#<?php echo $booking['id']; ?></td>
+                                <td>
+                                    <?php 
+                                    $checkout_date = date('d/m/Y', strtotime($booking['checkout']));
+                                    $is_today_checkout = $booking['checkout'] == $today;
+                                    ?>
+                                    <strong class="<?php echo $is_today_checkout ? 'text-danger' : ''; ?>">
+                                        <?php echo $checkout_date; ?>
+                                        <?php if ($is_today_checkout): ?>
+                                            <span class="badge bg-danger">Hôm nay</span>
+                                        <?php endif; ?>
+                                    </strong>
+                                </td>
                                 <td>
                                     <strong><?php echo $booking['room_number']; ?></strong><br>
                                     <small class="text-muted">Tầng <?php echo $booking['floor']; ?> - <?php echo $booking['type']; ?></small>
@@ -278,7 +304,7 @@ include "includes/header.php";
             </div>
         <?php else: ?>
             <div class="text-center text-muted py-4">
-                <p class="fs-5">🚪 Không có check-out nào hôm nay</p>
+                <p class="fs-5">🚪 Chưa có booking nào cần check-out</p>
             </div>
         <?php endif; ?>
     </div>
@@ -370,8 +396,8 @@ include "includes/header.php";
         FROM rooms
     ")->fetch_assoc();
     
-    $checkin_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE checkin = '$today' AND status IN ('pending_payment','booked')")->fetch_assoc();
-    $checkout_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE checkout = '$today' AND status = 'checked_in'")->fetch_assoc();
+    $checkin_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE status IN ('pending_payment','booked')")->fetch_assoc();
+    $checkout_pending = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE status = 'checked_in'")->fetch_assoc();
     ?>
     
     <div class="col-lg-3 col-md-6 col-sm-12">
@@ -427,10 +453,10 @@ $(document).ready(function() {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/vi.json'
             },
             pageLength: 10,
-            order: [[1, 'asc']], // Sort by room number
+            order: [[1, 'asc']], // Sort by check-in date
             columnDefs: [
                 {
-                    targets: [6], // Action column
+                    targets: [7], // Action column
                     orderable: false,
                     searchable: false,
                     width: '100px'
@@ -454,10 +480,10 @@ $(document).ready(function() {
                 url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/vi.json'
             },
             pageLength: 10,
-            order: [[1, 'asc']], // Sort by room number
+            order: [[1, 'asc']], // Sort by check-out date
             columnDefs: [
                 {
-                    targets: [6], // Action column
+                    targets: [7], // Action column
                     orderable: false,
                     searchable: false,
                     width: '100px'
